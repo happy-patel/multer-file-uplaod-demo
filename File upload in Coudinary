@@ -1,0 +1,39 @@
+---------------------- Middleware -----------------------
+import multer from 'multer';
+import path from 'path';
+import cloudinary from 'cloudinary';
+cloudinary.v2
+import { ENV } from '../constants/env';
+
+cloudinary.config({
+  cloud_name: ENV.CLOUDINARY_CLOUD,
+  api_key: ENV.CLOUDINARY_KEY,
+  api_secret: ENV.CLOUDINARY_SECRET,
+});
+
+const imageStorage = multer.memoryStorage({
+  filename: (req, file, cb) => {
+      cb(null, file.fieldname + '_' + Date.now() + path.extname(file.originalname))
+  }
+});
+
+const imageUpload = multer({ storage: imageStorage, limits: { fileSize: 10000000 } }).single('avatar');
+
+export { cloudinary, imageUpload }
+------------------------------------------------------------
+
+------------------- controller --------------------------
+    if (user.avatar) {
+      const removeAvatar = await cloudinary.uploader.destroy(user.avatar.publicId, { invalidate: true, resource_type: "image" });
+      if (!removeAvatar) return errorResponse(res, ERROR_MESSAGE.IMAGE_REMOVE_ERROR, 403);
+    }
+    if (req.file) {
+      const uploadedAvatar = await cloudinary.uploader.upload(req.file.path);
+      if (!uploadedAvatar) return errorResponse(res, ERROR_MESSAGE.IMAGE_UPLOAD_ERROR, 403);
+
+      param.avatar = {
+        url: uploadedAvatar.url,
+        publicId: uploadedAvatar.public_id
+      }
+    }
+----------------------------------------------------------
